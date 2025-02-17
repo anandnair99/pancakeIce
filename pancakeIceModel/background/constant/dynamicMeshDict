@@ -1,0 +1,105 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  v2112                                 |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      dynamicMeshDict;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+motionSolverLibs    (sixDoFRigidBodyMotion);
+
+dynamicFvMesh       dynamicOversetFvMesh;
+
+dynamicOversetFvMeshCoeffs
+{
+}
+
+solver          sixDoFRigidBodyMotion;
+
+sixDoFRigidBodyMotionCoeffs
+{
+
+    patches         (floatingObject);
+    innerDistance   0.2;
+    outerDistance   1.0;
+
+    centreOfMass    (0.3 0.3 0.5);
+
+    // Object dimensions
+    PI              3.141592653589793238462643;
+    Lr              0.2;
+    Lz              0.1;
+
+    // Density of the solid
+    rhoSolid        900;
+
+    // Object mass
+    mass            #eval{ $rhoSolid*$PI*$Lr*$Lr*$Lz };
+
+    // Object moment of inertia about the centre of mass
+    momentOfInertia #codeStream
+    {
+        codeInclude
+        #{
+            #include "diagTensor.H"
+        #};
+
+        code
+        #{
+            scalar sqrLr = sqr($Lr);
+            scalar sqrLz = sqr($Lz);
+            os  <<
+                $mass
+               *diagTensor(sqrLr/4.0 + sqrLz/12.0, sqrLr/4.0 + sqrLz/12.0, sqrLr/2.0);
+        #};
+    };
+
+    report          on;
+    accelerationRelaxation 0.8;
+    // accelerationDamping    0.9;
+
+    solver
+    {
+        type Newmark;
+    }
+
+    constraints
+    {
+
+        /*
+        fixedPoint
+        {
+             sixDoFRigidBodyMotionConstraint point;
+             centreOfRotation (0.5 0.45 0.1);
+        }
+        */
+
+        /*
+        fixedLine
+        {
+            sixDoFRigidBodyMotionConstraint line;
+            //centreOfRotation (0.5 0.45 0.1);
+            direction (0 0 1);
+        }
+        */
+
+        /*
+        fixedAxis
+        {
+            sixDoFRigidBodyMotionConstraint axis;
+            axis (0 1 0);
+        }
+        */
+    }
+}
+
+
+// ************************************************************************* //
